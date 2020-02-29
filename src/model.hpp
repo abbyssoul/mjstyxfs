@@ -25,9 +25,15 @@ struct JsonFS final : public kasofs::Filesystem {
 	kasofs::Result<void> destroyNode(kasofs::INode& node) override;
 
 	kasofs::Result<OpenFID> open(kasofs::INode& node, kasofs::Permissions op) override;
-	kasofs::Result<size_type> read(OpenFID fid, kasofs::INode& node, size_type offset, Solace::MutableMemoryView dest) override;
-	kasofs::Result<size_type> write(OpenFID fid, kasofs::INode& node, size_type offset, Solace::MemoryView src) override;
-	kasofs::Result<size_type> seek(OpenFID fid, kasofs::INode& node, size_type offset, SeekDirection direction) override;
+	kasofs::Result<size_type>
+	read(OpenFID fid, kasofs::INode& node, size_type offset, Solace::MutableMemoryView dest) override;
+
+	kasofs::Result<size_type>
+	write(OpenFID fid, kasofs::INode& node, size_type offset, Solace::MemoryView src) override;
+
+	kasofs::Result<size_type>
+	seek(OpenFID fid, kasofs::INode& node, size_type offset, SeekDirection direction) override;
+
 	kasofs::Result<void> close(OpenFID fid, kasofs::INode& node) override;
 
 protected:
@@ -42,7 +48,11 @@ private:
 
 
 kasofs::Result<void>
-mapJsonToFs(kasofs::Vfs& vfs, kasofs::INode::Id dirId, kasofs::VfsId jsonFsId, Solace::StringView name, rapidjson::Value const& value);
+mapJsonToFs(kasofs::Vfs& vfs,
+			kasofs::INode::Id dirId,
+			kasofs::VfsId jsonFsId,
+			Solace::StringView name,
+			rapidjson::Value const& value);
 
 }  // namespace mjstyxfs
 #endif  // MJSTYXFS_MODEL_HPP

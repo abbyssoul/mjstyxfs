@@ -39,7 +39,7 @@ static auto const kAppVersion = Version{0, 0, 1, "dev"};
 namespace mjstyxfs {
 
 struct AppOptions {
-	Solace::StringView  pidFileName{}; // "/var/run/mjstyxfs.pid"
+	Solace::StringView  pidFileName{};  // "/var/run/mjstyxfs.pid"
 	Solace::StringView  configFileName{"/etc/mjstyxfs/mjstyxfs.toml"};
 
 	apsio::Server::BaseConfig	serverOptions;
@@ -168,7 +168,7 @@ configure(std::vector<StringView> const& targetFiles, AppOptions options) {
 		std::filesystem::path filePath{fileName.begin(), fileName.end()};
 		std::unique_ptr<FILE, decltype(&fclose)> fp{fopen(filePath.c_str(), "r"), fclose};
 		if (!fp) {
-			return makeErrno("configure():fopen");
+			return makeErrno();
 		}
 
 		char readBuffer[4096];
@@ -193,6 +193,23 @@ configure(std::vector<StringView> const& targetFiles, AppOptions options) {
 	}
 
 	return config;
+}
+
+
+apsio::Server::Config
+configureListener(Configuration const& config) {
+	apsio::Auth::Policy::ACL acl{{"*", "*"}, std::make_unique<apsio::Auth::Strategy>()};
+	acl.strategy->isRequired = false;
+
+	auto maybePolicy = makeArrayOf<apsio::Auth::Policy::ACL>(mv(acl));
+
+	apsio::Server::Config listenerConfig{};
+	listenerConfig.authPolicy = apsio::Auth::Policy{maybePolicy.moveResult()};
+	listenerConfig.backlog = config.serverConfig.backlog;
+	listenerConfig.maxConnections = config.serverConfig.maxConnections;
+	listenerConfig.maxMessageSize = config.serverConfig.maxMessageSize;
+
+	return listenerConfig;
 }
 
 
@@ -223,18 +240,7 @@ run(Result<Configuration, Error>&& maybeConfig) {
 	listeners.reserve(config.binds.size());
 
 	for (auto const& host : config.binds) {
-		apsio::Auth::Policy::ACL acl{{"*", "*"}, std::make_unique<apsio::Auth::Strategy>()};
-		acl.strategy->isRequired = false;
-
-		auto maybePolicy = makeArrayOf<apsio::Auth::Policy::ACL>(mv(acl));
-
-		apsio::Server::Config listenerConfig{};
-		listenerConfig.authPolicy = apsio::Auth::Policy{maybePolicy.moveResult()};
-		listenerConfig.backlog = config.serverConfig.backlog;
-		listenerConfig.maxConnections = config.serverConfig.maxConnections;
-		listenerConfig.maxMessageSize = config.serverConfig.maxMessageSize;
-
-		auto maybeLstener = server.listen(host, mv(listenerConfig));
+		auto maybeLstener = server.listen(host, configureListener(config));
 		if (!maybeLstener) {
 			std::cerr << "Error: " << maybeLstener.getError() << std::endl;
 			return EXIT_FAILURE;
@@ -255,15 +261,14 @@ run(Result<Configuration, Error>&& maybeConfig) {
 
 
 // Application entry point
-int main(const int argc, const char *argv[]) {
+int main(const int argc, const char* argv[]) {
 	mjstyxfs::AppOptions options;
-	std::vector<StringView> targetFiles{};
+	std::vector<StringView> files{};
 
 	auto bindParser = mjstyxfs::BindParser{};
 	auto argsParsed = clime::Parser(kAppName, {
 				clime::Parser::printVersion(kAppName, kAppVersion),
 				clime::Parser::printHelp(),
-				{{"c", "config"},	"Config file to use", &options.configFileName},
 				{{"P", "pidfile"},	"Path for the daemon PID file", &options.pidFileName},
 
 				{{"maxCon"},	"Max number of concurrent connections", &options.serverOptions.maxConnections},
@@ -271,11 +276,11 @@ int main(const int argc, const char *argv[]) {
 				{{"backlog"},	"Max number of pending connections", &options.serverOptions.backlog},
 
 				{{"H", "host"},	"Address(s) on which to listen for conections",
-				 clime::Parser::ArgumentValue::Required, std::ref(bindParser)},
+				clime::Parser::ArgumentValue::Required, std::ref(bindParser)},
 			})
 			.arguments({
-			   {"*", "JSON file", [&targetFiles](Solace::StringView arg, clime::Parser::Context const&) -> Optional<Error> {
-					targetFiles.emplace_back(arg);
+			   {"*", "JSON file", [&files](Solace::StringView arg, clime::Parser::Context const&) -> Optional<Error> {
+					files.emplace_back(arg);
 					return none;
 				}}
 			})
@@ -285,12 +290,12 @@ int main(const int argc, const char *argv[]) {
 		options.binds = bindParser.bindOptions();
 	}
 
-	if (argsParsed && targetFiles.empty()) {
+	if (argsParsed && files.empty()) {
 		std::cerr << "No files given\n";
 		return EXIT_FAILURE;
 	}
 
 	return (argsParsed)
-			? mjstyxfs::run(mjstyxfs::configure(targetFiles, options))
+			? mjstyxfs::run(mjstyxfs::configure(files, options))
 			: mjstyxfs::errorExitCode(argsParsed.getError());
 }

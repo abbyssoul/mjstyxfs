@@ -27,7 +27,7 @@ setValueNode(kasofs::Vfs& fs, kasofs::User user, kasofs::INode::Id nodeId, uint6
 		return maybeEntry.moveError();
 
 	char buf[64];
-	uint const count = snprintf(buf, 64, "%ld", value);
+	uint const count = snprintf(buf, sizeof(buf), "%ld", value);
 
 	auto& entry = *maybeEntry;
 	auto writeOk = entry.write(wrapMemory(buf, count));
@@ -45,7 +45,7 @@ setValueNode(kasofs::Vfs& fs, kasofs::User user, kasofs::INode::Id nodeId, int64
 		return maybeEntry.moveError();
 
 	char buf[64];
-	uint const count = snprintf(buf, 64, "%ld", value);
+	uint const count = snprintf(buf, sizeof(buf), "%ld", value);
 
 	auto& entry = *maybeEntry;
 	auto writeOk = entry.write(wrapMemory(buf, count));
@@ -63,7 +63,7 @@ setValueNode(kasofs::Vfs& fs, kasofs::User user, kasofs::INode::Id nodeId, doubl
 		return maybeEntry.moveError();
 
 	char buf[64];
-	uint const count = snprintf(buf, 64, "%lf", value);
+	uint const count = snprintf(buf, sizeof(buf), "%lf", value);
 
 	auto& entry = *maybeEntry;
 	auto writeOk = entry.write(wrapMemory(buf, count));
@@ -89,7 +89,7 @@ setValueNode(kasofs::Vfs& fs, kasofs::User user, kasofs::INode::Id nodeId, std::
 
 
 kasofs::Result<void>
-mjstyxfs::mapJsonToFs(kasofs::Vfs& vfs, kasofs::INode::Id dirId, kasofs::VfsId jsonFsId, StringView valueName, rapidjson::Value const& value) {
+mjstyxfs::mapJsonToFs(Vfs& vfs, INode::Id dirId, VfsId jsonFsId, StringView valueName, rapidjson::Value const& value) {
 	kasofs::User user = vfs.nodeById(vfs.rootId()).get().owner;
 
 	switch (value.GetType()) {
