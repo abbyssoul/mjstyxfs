@@ -18,7 +18,7 @@
 [badge.issues]: https://img.shields.io/github/issues/abbyssoul/mjstyxfs.svg
 [issues]: http://github.com/abbyssoul/mjstyxfs/issues
 
-An example async [9P](https://en.wikipedia.org/wiki/9P_(protocol)) server using [libapsio][libapsio]: serving JSON file(s) as a 9p filesystem.
+An example of async [9P](https://en.wikipedia.org/wiki/9P_(protocol)) server using [libapsio][libapsio]: serving JSON file(s) as a 9p filesystem.
 
 
 # Usage
